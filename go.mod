@@ -1,3 +1,3 @@
-module github.com/derickdiaz/go_adp
+module github.com/derickdiaz/go-adp
 
 go 1.20
