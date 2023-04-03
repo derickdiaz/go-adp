@@ -1,4 +1,4 @@
-# go_adp
+# go-adp
 ADP Developer Library for Golang
 
 
