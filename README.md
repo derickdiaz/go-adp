@@ -1,6 +1,10 @@
 # go-adp
 ADP Developer Library for Golang
 
+## Installing
+```bash
+go get github.com/derickdiaz/go-adp@latest
+```
 
 ## Worker API Service
 
@@ -36,7 +40,7 @@ Pulling all workers from the ADP Directory synchronously
 
 import (
     "fmt"
-    adp "github.com/derickdiaz/go_adp"
+    adp "github.com/derickdiaz/go-adp"
     "log"
 )
 
