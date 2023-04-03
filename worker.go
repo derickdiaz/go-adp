@@ -1,5 +1,10 @@
 package adp
 
+import (
+	"fmt"
+	"strings"
+)
+
 type Worker struct {
 	AssociateOID          string                  `json:"associateOID"`
 	WorkerID              WorkerID                `json:"workerID"`
@@ -8,6 +13,119 @@ type Worker struct {
 	WorkerStatus          WorkerStatus            `json:"workerStatus"`
 	BusinessCommunication WorkerCommunication     `json:"businessCommunication"`
 	WorkAssignments       []WorkerWorkAssignment  `json:"workAssignments"`
+}
+
+func (w *Worker) GetAssociateOID() string {
+	return w.AssociateOID
+}
+
+func (w *Worker) GetFirstName() string {
+	return w.Person.LegalName.GivenName
+}
+
+func (w *Worker) GetMiddleName() string {
+	return w.Person.LegalName.MiddleName
+}
+
+func (w *Worker) GetLastName() string {
+	return w.Person.LegalName.FamilyName
+}
+
+func (w *Worker) GetBirthDate() WorkerDate {
+	return ToWorkerDate(w.Person.BirthDate)
+}
+
+func (w *Worker) GetGender() string {
+	gender := w.Person.GenderCode.LongName
+	if gender == "" {
+		gender = w.Person.GenderCode.ShortName
+	}
+	return gender
+}
+
+func (w *Worker) IsDisabled() bool {
+	return w.Person.DisabledIndicator
+}
+
+func (w *Worker) GetEthnicity() string {
+	ethnicity := w.Person.EthnicityCode.LongName
+	if ethnicity == "" {
+		ethnicity = w.Person.EthnicityCode.ShortName
+	}
+	return ethnicity
+}
+
+func (w *Worker) ListGovernmentIDs() []WorkerGovernmentID {
+	return w.Person.GovernmentIDs
+}
+
+func (w *Worker) GetAddress() WorkerLegalAddress {
+	return w.Person.LegalAddress
+}
+
+func (w *Worker) GetJobTitle() *string {
+	assignment := w.GetPrimaryWorkAssignment()
+	if assignment == nil {
+		return nil
+	}
+	jobTitle := assignment.GetJobTitle()
+	return &jobTitle
+}
+
+func (w *Worker) ListWorkAssignments() []WorkerWorkAssignment {
+	return w.WorkAssignments
+}
+
+func (w *Worker) GetPrimaryWorkAssignment() *WorkerWorkAssignment {
+	for _, assignment := range w.WorkAssignments {
+		if assignment.PrimaryIndicator == true {
+			return &assignment
+		}
+	}
+	return nil
+}
+
+func (w *Worker) IsActive() bool {
+	return w.WorkerStatus.StatusCode["codeValue"] == "Active"
+}
+
+func (w *Worker) GetBusinessEmails() []string {
+	emails := w.BusinessCommunication.Emails
+	emailAddresses := []string{}
+	for _, email := range emails {
+		emailAddresses = append(emailAddresses, email.EmailUri)
+	}
+
+	return emailAddresses
+}
+
+func (w *Worker) GetPersonnalEmails() []string {
+	emails := w.Person.Communication.Emails
+	emailAddresses := []string{}
+	for _, email := range emails {
+		emailAddresses = append(emailAddresses, email.EmailUri)
+	}
+
+	return emailAddresses
+}
+
+type WorkerDate struct {
+	Year  string
+	Month string
+	Day   string
+}
+
+func (w WorkerDate) String() string {
+	return fmt.Sprintf("%s-%s-%s", w.Year, w.Month, w.Day)
+}
+
+func ToWorkerDate(date string) WorkerDate {
+	splitDate := strings.Split(date, "-")
+	return WorkerDate{
+		Year:  splitDate[0],
+		Month: splitDate[1],
+		Day:   splitDate[2],
+	}
 }
 
 type WorkerID struct {
@@ -21,7 +139,7 @@ type WorkerPersonInformation struct {
 	SocialInsurancePrograms    []WorkerSocialInsuranceProgram `json:"socialInsurancePrograms"`
 	TobaccoUserIndicator       bool                           `json:"tobacooUserIndicator"`
 	DisabledIndicator          bool                           `json:"disabledIndicator"`
-	EthnicityCode              map[string]string              `json:"ethnicityCode"`
+	EthnicityCode              WorkerEthnicity                `json:"ethnicityCode"`
 	MilitaryStatusCode         map[string]string              `json:"militaryStatusCode"`
 	MilitaryDischargeDate      string                         `json:"militaryDischargeDate"`
 	MilitaryClassifiationCodes []map[string]string            `json:"militaryClassificationCodes"`
@@ -29,6 +147,12 @@ type WorkerPersonInformation struct {
 	LegalName                  WorkerLegalName                `json:"legalName"`
 	LegalAddress               WorkerLegalAddress             `json:"legalAddress"`
 	Communication              WorkerCommunication            `json:"communication"`
+}
+
+type WorkerEthnicity struct {
+	CodeValue string `json:"codeValue"`
+	ShortName string `json:"shortName"`
+	LongName  string `json:"longName"`
 }
 
 type WorkerGender struct {
@@ -114,6 +238,26 @@ type WorkerWorkAssignment struct {
 	ReportsTo                   []WorkerReportsTo              `json:"reportsTo"`
 }
 
+func (w *WorkerWorkAssignment) GetJobTitle() string {
+	return w.JobTitle
+}
+
+func (w *WorkerWorkAssignment) ListReportsToAssociateOID() []string {
+	results := []string{}
+	for _, reportsTo := range w.ReportsTo {
+		results = append(results, reportsTo.AssociateOID)
+	}
+	return results
+}
+
+func (w *WorkerWorkAssignment) GetHireDate() WorkerDate {
+	return ToWorkerDate(w.HireDate)
+}
+
+func (w *WorkerWorkAssignment) GetActualStartDate() WorkerDate {
+	return ToWorkerDate(w.ActualStartDate)
+}
+
 type WorkerWorkAssignmentStatus struct {
 	StatusCode    map[string]string `json:"statusCode"`
 	ReasonCode    map[string]string `json:"reasonCode"`
@@ -142,55 +286,4 @@ type WorkerReportsTo struct {
 type WorkerReportsToWorkerID struct {
 	IDValue    string            `json:"idValue"`
 	SchemaCode map[string]string `json:"workerID"`
-}
-
-func (w *Worker) GetAssociateOID() string {
-	return w.AssociateOID
-}
-
-func (w *Worker) GetFirstName() string {
-	return w.Person.LegalName.GivenName
-}
-
-func (w *Worker) GetMiddleName() string {
-	return w.Person.LegalName.MiddleName
-}
-
-func (w *Worker) GetLastName() string {
-	return w.Person.LegalName.FamilyName
-}
-
-func (w *Worker) GetPrimaryWorkAssignment() *WorkerWorkAssignment {
-	for _, assignment := range w.WorkAssignments {
-		if assignment.PrimaryIndicator == true {
-			return &assignment
-		}
-	}
-	return nil
-}
-
-func (w *Worker) IsActive() bool {
-	return w.WorkerStatus.StatusCode["codeValue"] == "Active"
-}
-
-func (w *Worker) GetBusinessEmails() []string {
-	emails := w.BusinessCommunication.Emails
-	emailAddresses := []string{}
-	for _, email := range emails {
-		emailAddresses = append(emailAddresses, email.EmailUri)
-	}
-
-	return emailAddresses
-}
-
-func (w *WorkerWorkAssignment) GetJobTitle() string {
-	return w.JobTitle
-}
-
-func (w *WorkerWorkAssignment) ListReportsToAssociateOID() []string {
-	results := []string{}
-	for _, reportsTo := range w.ReportsTo {
-		results = append(results, reportsTo.AssociateOID)
-	}
-	return results
 }
