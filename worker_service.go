@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 )
 
 type ADPWorkerService struct {
@@ -109,6 +110,23 @@ func (a *ADPWorkerService) ListWorkers() (*ADPWorkerEmployeeResponse, error) {
 	}
 
 	return &workers, nil
+}
+
+func (a *ADPWorkerService) GetWorkerImages(aoid, filePath string) error {
+	body, err := a.MakeRequest(http.MethodGet, fmt.Sprintf("hr/v2/workers/%s/worker-images/photo", aoid))
+	if err != nil {
+		return err
+	}
+	pictureFile, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+	defer pictureFile.Close()
+	_, err = io.Copy(pictureFile, body)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (a *ADPWorkerService) MakeRequest(method string, path string) (io.ReadCloser, error) {
